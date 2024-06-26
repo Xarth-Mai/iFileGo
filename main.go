@@ -10,11 +10,14 @@ import (
 	"log"
 	"net"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/quic-go/quic-go"
 )
+
+var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
 func main() {
 	mode := askUserForMode("服务端", "客户端")
@@ -24,8 +27,8 @@ func main() {
 	if mode == 1 {
 		runServer(port, blockSize)
 	} else {
-		serverIP := getIP()
-		runClient(serverIP, port, blockSize)
+		serverIP, serverName := getServer()
+		runClient(serverIP, port, blockSize, serverName)
 	}
 
 	fmt.Println("按任意键退出...")
@@ -52,7 +55,7 @@ func askUserForMode(option1, option2 string) int {
 }
 
 func runServer(port, blockSize int) {
-	listener, err := quic.ListenAddr(fmt.Sprintf(":%d", port), generateTLSConfig(1, "lzz.ink"), nil)
+	listener, err := quic.ListenAddr(fmt.Sprintf(":%d", port), generateTLSConfig(1, "null"), nil)
 	if err != nil {
 		log.Fatalf("监听错误: %v", err)
 	}
@@ -73,8 +76,8 @@ func runServer(port, blockSize int) {
 	}
 }
 
-func runClient(serverIP string, port, blockSize int) {
-	conn, err := quic.DialAddr(context.Background(), fmt.Sprintf("%s:%d", serverIP, port), generateTLSConfig(0, "lzz.ink"), nil)
+func runClient(serverIP string, port, blockSize int, serverName string) {
+	conn, err := quic.DialAddr(context.Background(), fmt.Sprintf("%s:%d", serverIP, port), generateTLSConfig(0, serverName), nil)
 	if err != nil {
 		log.Fatalf("连接服务端错误: %v", err)
 	}
@@ -132,22 +135,30 @@ func handleClientConnection(conn quic.Connection, blockSize int) {
 	}
 }
 
-func getIP() string {
+func getServer() (string, string) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print("请输入服务端IP地址: ")
-		serverIP, err := reader.ReadString('\n')
+		fmt.Print("请输入服务端地址: ")
+		serverInfo, err := reader.ReadString('\n')
 		if err != nil {
 			log.Printf("读取输入错误: %v\n", err)
 			continue
 		}
-		serverIP = strings.TrimSpace(serverIP)
-		ip := net.ParseIP(serverIP)
+		serverInfo = strings.TrimSpace(serverInfo)
+		ip := net.ParseIP(serverInfo)
 		if ip == nil {
-			log.Printf("请输入合法的IPv4或IPv6地址\n")
+			if domainRegex.MatchString(serverInfo) {
+				return serverInfo, serverInfo
+			} else {
+				log.Printf("请输入合法的域名或IP\n")
+			}
 			continue
 		}
-		return serverIP
+		skipChoice := askUserForMode("验证IP证书", "跳过验证")
+		if skipChoice != 1 {
+			return serverInfo, "skip"
+		}
+		return serverInfo, serverInfo
 	}
 }
 
@@ -245,15 +256,19 @@ func loadTLSCertificate(certFile, keyFile string) tls.Certificate {
 func generateTLSConfig(mode int, serverName string) *tls.Config {
 	if mode == 1 {
 		return &tls.Config{
-			InsecureSkipVerify: true, // 仅用于测试，跳过服务器证书验证
-			ServerName:         serverName,
 			Certificates: []tls.Certificate{
-				loadTLSCertificate("server.crt", "server.key"), // 加载自签名证书
+				loadTLSCertificate("server.crt", "server.key"),
 			},
 		}
+	} else if serverName == "skip" {
+		return &tls.Config{
+			InsecureSkipVerify: false,
+			ServerName:         serverName,
+		}
 	}
+
 	return &tls.Config{
-		InsecureSkipVerify: true, // 仅用于测试，跳过服务器证书验证
+		InsecureSkipVerify: true,
 		ServerName:         serverName,
 	}
 }
