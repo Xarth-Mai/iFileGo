@@ -155,11 +155,15 @@ func getServer() (string, string) {
 			}
 			continue
 		}
+		serverName := serverInfo
+		if ip.To4() == nil && len(ip) == net.IPv6len {
+			serverInfo = "[" + serverInfo + "]"
+		}
 		skipChoice := askUserForMode("验证IP证书", "跳过验证")
 		if skipChoice != 1 {
 			return serverInfo, "skip"
 		}
-		return serverInfo, serverInfo
+		return serverInfo, serverName
 	}
 }
 
