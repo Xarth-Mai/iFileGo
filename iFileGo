@@ -1,0 +1,175 @@
+package main
+
+import (
+	"bufio"
+	"context"
+	"fmt"
+	"log"
+	"net"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/lucas-clemente/quic-go"
+)
+
+func main() {
+	mode := askUserForMode("服务端", "客户端")
+	port := 15252
+
+	if mode == 1 {
+		runServer(port)
+	} else {
+		serverIP := getIP()
+		runClient(serverIP, port)
+	}
+
+	// 等待用户输入任意键退出
+	fmt.Println("按任意键退出...")
+	fmt.Scanln()
+}
+
+func askUserForMode(option1, option2 string) int {
+	for {
+		reader := bufio.NewReader(os.Stdin)
+
+		fmt.Printf("请选择：1 - %s，0 - %s: ", option1, option2)
+		modeStr, err := reader.ReadString('\n')
+		if err != nil {
+			log.Printf("读取输入错误: %v\n", err)
+			continue
+		}
+
+		modeStr = strings.TrimSpace(modeStr)
+		mode, err := strconv.Atoi(modeStr)
+		if err != nil || (mode != 0 && mode != 1) {
+			log.Println("无效的选择，请输入 1 或 0.")
+			continue
+		}
+
+		return mode
+	}
+}
+
+func runServer(port int) {
+	listener, err := quic.ListenAddr(fmt.Sprintf(":%d", port), generateTLSConfig(), nil)
+	if err != nil {
+		log.Fatalf("监听错误: %v", err)
+	}
+
+	log.Printf("服务端正在监听端口 %d...\n", port)
+
+	for {
+		sess, err := listener.Accept(context.Background())
+		if err != nil {
+			log.Printf("与客户端建立连接时出错: %v\n", err)
+			continue
+		}
+
+		log.Printf("与客户端 %s 建立连接\n", sess.RemoteAddr().String())
+
+		for {
+			mode := askUserForMode("接收模式", "发送模式")
+
+			var modeData [1]byte
+			modeData[0] = byte(mode)
+
+			if _, err := sess.Write(modeData[:]); err != nil {
+				log.Fatalf("协商收发模式错误: %v", err)
+				break
+			}
+
+			if mode == 1 {
+				receiveFile(sess)
+			} else {
+				sendFile(sess)
+			}
+
+			choice := askUserForMode("继续传输", "结束程序")
+			if choice != 1 {
+				return
+			}
+		}
+	}
+}
+
+func runClient(serverIP string, port int) {
+	retry := 3
+	for retry > 0 {
+		sess, err := quic.DialAddr(fmt.Sprintf("%s:%d", serverIP, port), generateTLSConfig(), nil, nil)
+		if err != nil {
+			log.Printf("连接服务端错误: %v\n", err)
+			retry--
+			continue
+		}
+
+		log.Printf("成功连接到服务端 %s\n", serverIP)
+
+		for {
+			var modeData [1]byte
+			if _, err := sess.Read(modeData[:]); err != nil {
+				log.Printf("接收模式数据错误: %v", err)
+				break
+			}
+
+			mode := modeData[0]
+
+			if mode == 1 {
+				receiveFile(sess)
+			} else {
+				sendFile(sess)
+			}
+
+			choice := askUserForMode("继续传输", "结束程序")
+			if choice != 1 {
+				return
+			}
+		}
+	}
+
+	if retry == 0 {
+		log.Println("连接失败，超过重试次数。")
+	}
+}
+
+func getIP() string {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Print("请输入服务端IP地址: ")
+		serverIP, err := reader.ReadString('\n')
+		if err != nil {
+			log.Printf("读取输入错误: %v\n", err)
+			continue
+		}
+
+		serverIP = strings.TrimSpace(serverIP)
+
+		ip := net.ParseIP(serverIP)
+		if ip == nil {
+			log.Printf("请输入合法的IPv4或IPv6地址\n")
+			continue
+		}
+
+		return serverIP
+	}
+}
+
+func sendFile(sess quic.Session) {
+	// 实现文件发送逻辑
+}
+
+func receiveFile(sess quic.Session) {
+	// 实现文件接收逻辑
+}
+
+func generateTLSConfig() *quic.Config {
+	return &quic.Config{
+		KeepAlive:           true,
+		MaxIdleTimeout:      time.Second * 5,
+		HandshakeTimeout:    time.Second * 10,
+		IdleTimeout:         time.Second * 30,
+		RequestConnectionID: true,
+	}
+}
