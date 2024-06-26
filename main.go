@@ -164,57 +164,66 @@ func getServer() (string, string) {
 }
 
 func sendFile(stream quic.Stream, blockSize int) {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("请输入要发送的文件路径: ")
-	filePath, err := reader.ReadString('\n')
-	if err != nil {
-		log.Fatalf("读取文件路径错误: %v", err)
-	}
-	filePath = strings.TrimSpace(filePath)
-	file, err := os.Open(filePath)
-	if err != nil {
-		log.Fatalf("打开文件错误: %v", err)
-	}
-	defer file.Close()
-	fileInfo, err := file.Stat()
-	if err != nil {
-		log.Fatalf("获取文件信息错误: %v", err)
-	}
-	fileName := fileInfo.Name()
-	fileSize := fileInfo.Size()
-
-	// 发送文件名长度和文件名
-	if err := binary.Write(stream, binary.BigEndian, uint8(len(fileName))); err != nil {
-		log.Fatalf("发送文件名长度错误: %v", err)
-	}
-	if err := binary.Write(stream, binary.BigEndian, []byte(fileName)); err != nil {
-		log.Fatalf("发送文件名错误: %v", err)
-	}
-	// 发送文件大小
-	if err := binary.Write(stream, binary.BigEndian, fileSize); err != nil {
-		log.Fatalf("发送文件大小错误: %v", err)
-	}
-
-	// 创建进度条
-	bar := pb.Full.Start64(fileSize).Set(pb.Bytes, true)
-
-	// 通过重复写入来发送文件内容，并更新进度条
-	buffer := make([]byte, blockSize)
 	for {
-		n, err := file.Read(buffer)
-		if err != nil && err != io.EOF {
-			log.Fatalf("读取文件内容错误: %v", err)
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("请输入要发送的文件路径: ")
+		filePath, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatalf("读取文件路径错误: %v", err)
+			continue
 		}
-		if n == 0 {
-			break
+		filePath = strings.Trim(strings.TrimSpace(filePath), "\"")
+		file, err := os.Open(filePath)
+		if err != nil {
+			log.Fatalf("打开文件错误: %v", err)
+			continue
 		}
-		if _, err := stream.Write(buffer[:n]); err != nil {
-			log.Fatalf("发送文件内容错误: %v", err)
+		defer file.Close()
+		fileInfo, err := file.Stat()
+		if err != nil {
+			log.Fatalf("获取文件信息错误: %v", err)
+			continue
 		}
-		bar.Add(n)
+		fileName := fileInfo.Name()
+		fileSize := fileInfo.Size()
+
+		// 发送文件名长度和文件名
+		if err := binary.Write(stream, binary.BigEndian, uint8(len(fileName))); err != nil {
+			log.Fatalf("发送文件名长度错误: %v", err)
+			return
+		}
+		if err := binary.Write(stream, binary.BigEndian, []byte(fileName)); err != nil {
+			log.Fatalf("发送文件名错误: %v", err)
+			return
+		}
+		// 发送文件大小
+		if err := binary.Write(stream, binary.BigEndian, fileSize); err != nil {
+			log.Fatalf("发送文件大小错误: %v", err)
+			return
+		}
+
+		// 创建进度条
+		bar := pb.Full.Start64(fileSize).Set(pb.Bytes, true)
+
+		// 通过重复写入来发送文件内容，并更新进度条
+		buffer := make([]byte, blockSize)
+		for {
+			n, err := file.Read(buffer)
+			if err != nil && err != io.EOF {
+				log.Fatalf("读取文件内容错误: %v", err)
+			}
+			if n == 0 {
+				break
+			}
+			if _, err := stream.Write(buffer[:n]); err != nil {
+				log.Fatalf("发送文件内容错误: %v", err)
+			}
+			bar.Add(n)
+		}
+		bar.Finish()
+		fmt.Printf("文件 %s 发送完成\n", fileName)
+		return
 	}
-	bar.Finish()
-	fmt.Printf("文件 %s 发送完成\n", fileName)
 }
 
 func receiveFile(stream quic.Stream, blockSize int) {
