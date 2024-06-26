@@ -13,24 +13,22 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
 
-    - name: Get branch name
+    - name: Get commit hash
       id: vars
-      run: echo "BRANCH_NAME=${GITHUB_REF##*/}" >> $GITHUB_ENV
+      run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-    - name: Build
-      run: go build -v -o iFileGo-$GITHUB_REF_NAME
-
-    - name: Test
-      run: go test -v ./...
-
-    - name: Archive build output
+    - name: Build for Windows
       run: |
-        mkdir -p build
-        mv iFileGo-$GITHUB_REF_NAME build/
-        tar -czvf build_output.tar.gz build/
+        GOOS=windows GOARCH=amd64 go build -v -o iFileGo-$COMMIT_HASH-windows.exe
+
+    - name: Build for Linux
+      run: |
+        GOOS=linux GOARCH=amd64 go build -v -o iFileGo-$COMMIT_HASH-linux
 
     - name: Upload build output
       uses: actions/upload-artifact@v3
       with:
         name: build-output
-        path: build_output.tar.gz
+        path: |
+          iFileGo-$COMMIT_HASH-windows.exe
+          iFileGo-$COMMIT_HASH-linux
