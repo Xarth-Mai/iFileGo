@@ -52,7 +52,7 @@ func askUserForMode(option1, option2 string) int {
 }
 
 func runServer(port, blockSize int) {
-	listener, err := quic.ListenAddr(fmt.Sprintf(":%d", port), generateTLSConfig(), nil)
+	listener, err := quic.ListenAddr(fmt.Sprintf(":%d", port), generateTLSConfig(1, "lzz.ink"), nil)
 	if err != nil {
 		log.Fatalf("监听错误: %v", err)
 	}
@@ -64,20 +64,25 @@ func runServer(port, blockSize int) {
 			continue
 		}
 		log.Printf("与客户端 %s 建立连接\n", conn.RemoteAddr().String())
-		go handleConnection(conn, blockSize)
+		handleServerConnection(conn, blockSize)
+		choice := askUserForMode("等待新连接", "结束程序")
+		if choice != 1 {
+			conn.CloseWithError(0, "正常关闭")
+			os.Exit(0)
+		}
 	}
 }
 
 func runClient(serverIP string, port, blockSize int) {
-	conn, err := quic.DialAddr(context.Background(), fmt.Sprintf("%s:%d", serverIP, port), generateTLSConfig(), nil)
+	conn, err := quic.DialAddr(context.Background(), fmt.Sprintf("%s:%d", serverIP, port), generateTLSConfig(0, "lzz.ink"), nil)
 	if err != nil {
 		log.Fatalf("连接服务端错误: %v", err)
 	}
 	log.Printf("成功连接到服务端 %s\n", serverIP)
-	handleConnection(conn, blockSize)
+	handleClientConnection(conn, blockSize)
 }
 
-func handleConnection(conn quic.Connection, blockSize int) {
+func handleServerConnection(conn quic.Connection, blockSize int) {
 	for {
 		mode := askUserForMode("接收模式", "发送模式")
 		var modeData [1]byte
@@ -87,12 +92,36 @@ func handleConnection(conn quic.Connection, blockSize int) {
 			log.Fatalf("打开流错误: %v", err)
 		}
 		if _, err := stream.Write(modeData[:]); err != nil {
-			log.Fatalf("协商收发模式错误: %v", err)
+			log.Fatalf("发送模式错误: %v", err)
 		}
 		if mode == 1 {
 			receiveFile(stream, blockSize)
 		} else {
 			sendFile(stream, blockSize)
+		}
+		stream.Close()
+		choice := askUserForMode("继续传输", "结束会话")
+		if choice != 1 {
+			os.Exit(0)
+		}
+	}
+}
+
+func handleClientConnection(conn quic.Connection, blockSize int) {
+	for {
+		stream, err := conn.AcceptStream(context.Background())
+		if err != nil {
+			log.Fatalf("接受流错误: %v", err)
+		}
+		var modeData [1]byte
+		if _, err := stream.Read(modeData[:]); err != nil {
+			log.Fatalf("接收模式错误: %v", err)
+		}
+		mode := modeData[0]
+		if mode == 1 {
+			sendFile(stream, blockSize)
+		} else {
+			receiveFile(stream, blockSize)
 		}
 		stream.Close()
 		choice := askUserForMode("继续传输", "结束程序")
@@ -124,16 +153,12 @@ func getIP() string {
 
 func sendFile(stream quic.Stream, blockSize int) {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("请输入要发送的文件路径（输入 q 退出）: ")
+	fmt.Print("请输入要发送的文件路径: ")
 	filePath, err := reader.ReadString('\n')
 	if err != nil {
 		log.Fatalf("读取文件路径错误: %v", err)
 	}
 	filePath = strings.TrimSpace(filePath)
-	if filePath == "q" {
-		fmt.Println("退出文件发送")
-		return
-	}
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("打开文件错误: %v", err)
@@ -209,8 +234,26 @@ func receiveFile(stream quic.Stream, blockSize int) {
 	fmt.Printf("接收到文件:%s, 大小:%d bytes\n", fileName, fileSize)
 }
 
-func generateTLSConfig() *tls.Config {
+func loadTLSCertificate(certFile, keyFile string) tls.Certificate {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		log.Fatalf("无法加载tls证书: %v\n", err)
+	}
+	return cert
+}
+
+func generateTLSConfig(mode int, serverName string) *tls.Config {
+	if mode == 1 {
+		return &tls.Config{
+			InsecureSkipVerify: true, // 仅用于测试，跳过服务器证书验证
+			ServerName:         serverName,
+			Certificates: []tls.Certificate{
+				loadTLSCertificate("server.crt", "server.key"), // 加载自签名证书
+			},
+		}
+	}
 	return &tls.Config{
-		InsecureSkipVerify: true, // 仅用于测试
+		InsecureSkipVerify: true, // 仅用于测试，跳过服务器证书验证
+		ServerName:         serverName,
 	}
 }
