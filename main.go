@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/quic-go/quic-go"
 )
 
@@ -105,7 +106,7 @@ func handleServerConnection(conn quic.Connection, blockSize int) {
 		stream.Close()
 		choice := askUserForMode("继续传输", "结束会话")
 		if choice != 1 {
-			os.Exit(0)
+			return
 		}
 	}
 }
@@ -179,16 +180,25 @@ func sendFile(stream quic.Stream, blockSize int) {
 	if err != nil {
 		log.Fatalf("获取文件信息错误: %v", err)
 	}
-	fileNameLength := uint8(len(fileInfo.Name()))
-	if err := binary.Write(stream, binary.BigEndian, fileNameLength); err != nil {
+	fileName := fileInfo.Name()
+	fileSize := fileInfo.Size()
+
+	// 发送文件名长度和文件名
+	if err := binary.Write(stream, binary.BigEndian, uint8(len(fileName))); err != nil {
 		log.Fatalf("发送文件名长度错误: %v", err)
 	}
-	if err := binary.Write(stream, binary.BigEndian, []byte(fileInfo.Name())); err != nil {
+	if err := binary.Write(stream, binary.BigEndian, []byte(fileName)); err != nil {
 		log.Fatalf("发送文件名错误: %v", err)
 	}
-	if err := binary.Write(stream, binary.BigEndian, fileInfo.Size()); err != nil {
+	// 发送文件大小
+	if err := binary.Write(stream, binary.BigEndian, fileSize); err != nil {
 		log.Fatalf("发送文件大小错误: %v", err)
 	}
+
+	// 创建进度条
+	bar := pb.Full.Start64(fileSize).Set(pb.Bytes, true)
+
+	// 通过重复写入来发送文件内容，并更新进度条
 	buffer := make([]byte, blockSize)
 	for {
 		n, err := file.Read(buffer)
@@ -201,8 +211,10 @@ func sendFile(stream quic.Stream, blockSize int) {
 		if _, err := stream.Write(buffer[:n]); err != nil {
 			log.Fatalf("发送文件内容错误: %v", err)
 		}
+		bar.Add(n)
 	}
-	fmt.Printf("文件 %s 发送完成\n", fileInfo.Name())
+	bar.Finish()
+	fmt.Printf("文件 %s 发送完成\n", fileName)
 }
 
 func receiveFile(stream quic.Stream, blockSize int) {
@@ -219,11 +231,18 @@ func receiveFile(stream quic.Stream, blockSize int) {
 	if err := binary.Read(stream, binary.BigEndian, &fileSize); err != nil {
 		log.Fatalf("接收文件大小错误: %v", err)
 	}
+
+	// 创建进度条
+	bar := pb.Full.Start64(fileSize).Set(pb.Bytes, true)
+
+	// 创建文件
 	file, err := os.Create(fileName)
 	if err != nil {
 		log.Fatalf("创建文件错误: %v", err)
 	}
 	defer file.Close()
+
+	// 通过循环读取数据并更新进度条，写入文件
 	buffer := make([]byte, blockSize)
 	var receivedBytes int64
 	for {
@@ -237,11 +256,13 @@ func receiveFile(stream quic.Stream, blockSize int) {
 		if _, err := file.Write(buffer[:n]); err != nil {
 			log.Fatalf("写入文件内容错误: %v", err)
 		}
+		bar.Add(n)
 		receivedBytes += int64(n)
 		if receivedBytes >= fileSize {
 			break
 		}
 	}
+	bar.Finish()
 	fmt.Printf("接收到文件:%s, 大小:%d bytes\n", fileName, fileSize)
 }
 
@@ -262,13 +283,13 @@ func generateTLSConfig(mode int, serverName string) *tls.Config {
 		}
 	} else if serverName == "skip" {
 		return &tls.Config{
-			InsecureSkipVerify: false,
+			InsecureSkipVerify: true,
 			ServerName:         serverName,
 		}
 	}
 
 	return &tls.Config{
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: false,
 		ServerName:         serverName,
 	}
 }
