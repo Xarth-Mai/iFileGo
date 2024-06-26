@@ -3,16 +3,23 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/binary"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log"
+	"math/big"
 	"net"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/quic-go/quic-go"
@@ -279,10 +286,64 @@ func receiveFile(stream quic.Stream, blockSize int) {
 	fmt.Printf("接收到文件:%s, 大小:%d bytes\n", fileName, fileSize)
 }
 
+func generateRandomTLSCertificate() tls.Certificate {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Fatalf("无法生成私钥: %v\n", err)
+	}
+
+	notBefore := time.Now()
+	notAfter := notBefore.Add(365 * 24 * time.Hour)
+
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		log.Fatalf("无法生成序列号: %v\n", err)
+	}
+
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"Random Organization"},
+		},
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	if err != nil {
+		log.Fatalf("无法生成证书: %v\n", err)
+	}
+
+	certOut, err := os.Create("random_server.crt")
+	if err != nil {
+		log.Fatalf("无法创建证书文件: %v\n", err)
+	}
+	defer certOut.Close()
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+
+	keyOut, err := os.Create("random_server.key")
+	if err != nil {
+		log.Fatalf("无法创建密钥文件: %v\n", err)
+	}
+	defer keyOut.Close()
+	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
+
+	log.Println("随机生成的TLS证书已保存为 random_server.crt 和 random_server.key")
+
+	return tls.Certificate{
+		Certificate: [][]byte{derBytes},
+		PrivateKey:  priv,
+	}
+}
+
 func loadTLSCertificate(certFile, keyFile string) tls.Certificate {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Fatalf("无法加载tls证书: %v\n", err)
+		log.Printf("无法加载TLS证书: %v,随机生成一对新的证书\n", err)
+		return generateRandomTLSCertificate()
 	}
 	return cert
 }
