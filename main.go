@@ -29,7 +29,7 @@ var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9
 
 func main() {
 	mode := askUserForMode("服务端", "客户端")
-	port := 15252
+	port := 35342
 	blockSize := 64 * 1024
 
 	if mode == 1 {
@@ -293,7 +293,7 @@ func generateRandomTLSCertificate() tls.Certificate {
 	}
 
 	notBefore := time.Now()
-	notAfter := notBefore.Add(365 * 24 * time.Hour)
+	notAfter := notBefore.Add(3 * 24 * time.Hour)
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
