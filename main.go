@@ -32,7 +32,7 @@ func main() {
 	fmt.Printf("iFileGo V%s\n", version)
 	mode := askUserForMode("服务端", "客户端")
 	port := 35342
-	blockSize := 64 * 1024
+	blockSize := 64 * 1280
 
 	if mode == 1 {
 		runServer(port, blockSize)
