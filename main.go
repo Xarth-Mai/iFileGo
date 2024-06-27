@@ -28,9 +28,11 @@ import (
 var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
 func main() {
+	version := "1.2"
+	fmt.Printf("iFileGo V%s\n", version)
 	mode := askUserForMode("服务端", "客户端")
 	port := 35342
-	blockSize := 64 * 1024
+	blockSize := 1280
 
 	if mode == 1 {
 		runServer(port, blockSize)
@@ -41,6 +43,7 @@ func main() {
 
 	fmt.Println("按任意键退出...")
 	fmt.Scanln()
+	os.Exit(0)
 }
 
 func askUserForMode(option1, option2 string) int {
@@ -79,7 +82,7 @@ func runServer(port, blockSize int) {
 		choice := askUserForMode("等待新连接", "结束程序")
 		if choice != 1 {
 			conn.CloseWithError(0, "正常关闭")
-			os.Exit(0)
+			return
 		}
 	}
 }
@@ -153,6 +156,7 @@ func getServer() (string, string) {
 			continue
 		}
 		serverInfo = strings.TrimSpace(serverInfo)
+		serverInfo = strings.Trim(serverInfo, `"'[]/`)
 		ip := net.ParseIP(serverInfo)
 		if ip == nil {
 			if domainRegex.MatchString(serverInfo) {
@@ -229,7 +233,7 @@ func sendFile(stream quic.Stream, blockSize int) {
 			if _, err := stream.Write(buffer[:n]); err != nil {
 				log.Fatalf("发送文件内容错误: %v", err)
 			}
-			bar.Add(n)
+			bar.Add(blockSize)
 		}
 		bar.Finish()
 		fmt.Printf("文件 %s 发送完成\n", fileName)
