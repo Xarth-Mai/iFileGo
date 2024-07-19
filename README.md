@@ -47,7 +47,7 @@ go build
 
 ## 🛠 License
 
-This project is licensed under the [GPL-3.0 License](https://github.com/Xarth-Mai/iFileGo?tab=GPL-3.0-1-ov-file#)
+This project is licensed under the [MPL License](https://github.com/Xarth-Mai/iFileGo#MPL-2.0-1-ov-file)
 
 ## 🌟 Stargazers
 
