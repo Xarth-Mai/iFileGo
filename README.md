@@ -13,7 +13,7 @@ A fast and secure file transfer assistant built in Golang, leveraging the QUIC p
 - 通过TLS加密实现安全文件传输
 - 简单易用的命令行界面
 
-## 🪤 Installation 安装
+## 🪤 Build 构建
 
 ```bash
 git clone https://github.com/Xarth-Mai/iFileGo.git
