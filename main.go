@@ -28,7 +28,7 @@ import (
 var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
 func main() {
-	version := "1.3"
+	version := "13"
 	fmt.Printf("iFileGo V%s\n", version)
 	mode := askUserForMode("服务端", "客户端")
 	port := 35342
