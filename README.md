@@ -4,7 +4,7 @@ A fast and secure file transfer assistant built in Golang, leveraging the QUIC p
 
 一个基于Golang开发的快速文件传输助手，利用QUIC协议提供快速、安全的文件传输体验。
 
-## 💡 Features 功能
+## 💡 Features
 
 - Fast file transfer using QUIC protocol
 - Secure file transfer with TLS encryption
@@ -13,7 +13,7 @@ A fast and secure file transfer assistant built in Golang, leveraging the QUIC p
 - 通过TLS加密实现安全文件传输
 - 简单易用的命令行界面
 
-## 🪤 Build 构建
+## 🪤 Build
 
 ```bash
 git clone https://github.com/Xarth-Mai/iFileGo.git
@@ -21,7 +21,7 @@ cd iFileGo
 go build
 ```
 
-## 📝 Usage 用法
+## 📝 Usage
 
 1. Place your TLS certificate files in the same directory as the executable, named `server.crt` and `server.key`. (Optional: If not provided, the program will generate random certificates.)
 
@@ -44,6 +44,13 @@ go build
    ```
 
 3. 启动客户端连接到服务器进行文件传输。
+
+## 🌐 i18n
+
+- [x] English
+- [x] 简体中文
+- [ ] 繁体中文
+- [ ] 日本語
 
 ## 🛠 License
 
