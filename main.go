@@ -30,25 +30,27 @@ var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9
 var translations = map[string]map[string]string{
 	"en": {
 		"version":                    "iFileGo V%s\n",
-		"serverMode":                 "Server",
-		"clientMode":                 "Client",
-		"selectMode":                 "Select: 1 - %s, 0 - %s: ",
+		"selectMode":                 "Please select: 1 - %s, 0 - %s: ",
 		"invalidChoice":              "Invalid choice, please enter 1 or 0.",
 		"exitPrompt":                 "Press any key to exit...",
 		"serverListening":            "Server is listening on port %d...\n",
-		"connectionError":            "Error establishing connection with client: %v\n",
-		"connectedToClient":          "Connected to client %s\n",
-		"chooseMode":                 "Choose mode: Receive (1) or Send (0): ",
+		"listeningError":             "Error listening on port: %v\n",
+		"connectionError":            "Error establishing connection: %v\n",
+		"connectedTo":                "Connected to %s\n",
 		"receiveMode":                "Receive mode",
 		"sendMode":                   "Send mode",
+		"serverMode":                 "Server mode",
+		"clientMode":                 "Client mode",
 		"continueTransfer":           "Continue transfer",
 		"endSession":                 "End session",
-		"continueTransmission":       "Continue transmission",
 		"endProgram":                 "End program",
-		"enterFilePath":              "Enter the file path to send: ",
+		"enterFilePath":              "Please enter the file path to send: ",
 		"filePathError":              "Error reading file path: %v",
 		"fileOpenError":              "Error opening file: %v",
-		"fileStatError":              "Error getting file info: %v",
+		"negotiateModeError":         "Error negotiating transfer mode: %v",
+		"streamOpenError":            "Error opening stream: %v",
+		"streamReceiveError":         "Error receiving stream: %v",
+		"fileStatError":              "Error getting file information: %v",
 		"sendFileNameLengthError":    "Error sending file name length: %v",
 		"sendFileNameError":          "Error sending file name: %v",
 		"sendFileSizeError":          "Error sending file size: %v",
@@ -59,36 +61,43 @@ var translations = map[string]map[string]string{
 		"receiveFileSizeError":       "Error receiving file size: %v",
 		"createFileError":            "Error creating file: %v",
 		"writeFileError":             "Error writing file content: %v",
-		"fileReceived":               "Received file: %s, Size: %d bytes\n",
-		"generatePrivateKeyError":    "Error generating private key: %v\n",
-		"generateSerialNumberError":  "Error generating serial number: %v\n",
-		"generateCertificateError":   "Error generating certificate: %v\n",
-		"createCertFileError":        "Error creating certificate file: %v\n",
-		"createKeyFileError":         "Error creating key file: %v\n",
+		"fileReceived":               "Received file: %s, size: %d bytes\n",
+		"readInputError":             "Error reading input: %v\n",
+		"getServerAddress":           "Please enter the server address: ",
+		"invalidIP":                  "Please enter a valid domain name or IP\n",
+		"verifyIPCrt":                "Verify IP certificate",
+		"skipVerify":                 "Skip verification",
+		"normalClose":                "Normal close",
+		"generatePrivateKeyError":    "Unable to generate private key: %v\n",
+		"generateSerialNumberError":  "Unable to generate serial number: %v\n",
+		"generateCertificateError":   "Unable to generate certificate: %v\n",
+		"createCertFileError":        "Unable to create certificate file: %v\n",
+		"createKeyFileError":         "Unable to create key file: %v\n",
 		"certSaved":                  "Randomly generated TLS certificate saved as random_server.crt and random_server.key",
-		"loadCertError":              "Error loading TLS certificate: %v, generating a new pair",
-		"loadCertDefault":            "Loading default TLS certificate",
+		"loadCertError":              "Unable to load TLS certificate: %v. Generating a new pair of certificates",
 	},
 	"zhs": {
 		"version":                    "iFileGo V%s\n",
-		"serverMode":                 "服务端",
-		"clientMode":                 "客户端",
 		"selectMode":                 "请选择:1 - %s, 0 - %s: ",
 		"invalidChoice":              "无效的选择, 请输入 1 或 0.",
 		"exitPrompt":                 "按任意键退出...",
 		"serverListening":            "服务端正在监听端口 %d...\n",
-		"connectionError":            "与客户端建立连接时出错: %v\n",
-		"connectedToClient":          "与客户端 %s 建立连接\n",
-		"chooseMode":                 "选择模式: 接收 (1) 或 发送 (0): ",
+		"listeningError":             "监听端口出错: %v\n",
+		"connectionError":            "建立连接时出错: %v\n",
+		"connectedTo":                "与 %s 建立连接\n",
 		"receiveMode":                "接收模式",
 		"sendMode":                   "发送模式",
+		"serverMode":                 "服务端模式",
+		"clientMode":                 "客户端模式",
 		"continueTransfer":           "继续传输",
 		"endSession":                 "结束会话",
-		"continueTransmission":       "继续传输",
 		"endProgram":                 "结束程序",
 		"enterFilePath":              "请输入要发送的文件路径: ",
 		"filePathError":              "读取文件路径错误: %v",
 		"fileOpenError":              "打开文件错误: %v",
+		"negotiateModeError":         "协商收发模式错误: %v",
+		"streamOpenError":            "打开流错误: %v",
+		"streamReceiveError":         "接受流错误: %v",
 		"fileStatError":              "获取文件信息错误: %v",
 		"sendFileNameLengthError":    "发送文件名长度错误: %v",
 		"sendFileNameError":          "发送文件名错误: %v",
@@ -101,14 +110,19 @@ var translations = map[string]map[string]string{
 		"createFileError":            "创建文件错误: %v",
 		"writeFileError":             "写入文件内容错误: %v",
 		"fileReceived":               "接收到文件: %s, 大小: %d bytes\n",
+		"readInputError":             "读取输入错误: %v\n",
+		"getServerAddress":           "请输入服务端地址: ",
+		"invalidIP":                  "请输入合法的域名或IP\n",
+		"verifyIPCrt":                "验证IP证书",
+		"skipVerify":                 "跳过验证",
+		"normalClose":                "正常关闭",
 		"generatePrivateKeyError":    "无法生成私钥: %v\n",
 		"generateSerialNumberError":  "无法生成序列号: %v\n",
 		"generateCertificateError":   "无法生成证书: %v\n",
 		"createCertFileError":        "无法创建证书文件: %v\n",
 		"createKeyFileError":         "无法创建密钥文件: %v\n",
 		"certSaved":                  "随机生成的TLS证书已保存为 random_server.crt 和 random_server.key",
-		"loadCertError":              "无法加载TLS证书: %v, 随机生成一对新的证书",
-		"loadCertDefault":            "加载默认TLS证书",
+		"loadCertError":              "无法加载TLS证书: %v随机生成一对新的证书",
 	},
 }
 
@@ -162,7 +176,8 @@ func translate(key string, args ...interface{}) string {
 	if val, ok := translations["en"][key]; ok {
 		return fmt.Sprintf(val, args...)
 	}
-	return key
+	missingkey := "$" + key
+	return missingkey
 }
 
 func askUserForMode(option1, option2 string) int {
@@ -187,7 +202,7 @@ func askUserForMode(option1, option2 string) int {
 func runServer(port, blockSize int) {
 	listener, err := quic.ListenAddr(fmt.Sprintf(":%d", port), generateTLSConfig(1, "null"), nil)
 	if err != nil {
-		log.Fatalf(translate("connectionError", err))
+		log.Fatalf(translate("listeningError", err))
 	}
 	log.Print(translate("serverListening", port))
 	for {
@@ -196,11 +211,11 @@ func runServer(port, blockSize int) {
 			log.Print(translate("connectionError", err))
 			continue
 		}
-		log.Print(translate("connectedToClient", conn.RemoteAddr().String()))
+		log.Print(translate("connectedTo", conn.RemoteAddr().String()))
 		handleServerConnection(conn, blockSize)
-		choice := askUserForMode(translate("continueTransmission"), translate("endSession"))
+		choice := askUserForMode(translate("continueTransfer"), translate("endProgram"))
 		if choice != 1 {
-			conn.CloseWithError(0, translate("endSession"))
+			conn.CloseWithError(0, translate("normalClose"))
 			return
 		}
 	}
@@ -211,7 +226,7 @@ func runClient(serverIP string, port, blockSize int, serverName string) {
 	if err != nil {
 		log.Fatalf(translate("connectionError", err))
 	}
-	log.Print(translate("connectedToClient", serverIP))
+	log.Print(translate("connectedTo", serverIP))
 	handleClientConnection(conn, blockSize)
 }
 
@@ -222,10 +237,10 @@ func handleServerConnection(conn quic.Connection, blockSize int) {
 		modeData[0] = byte(mode)
 		stream, err := conn.OpenStream()
 		if err != nil {
-			log.Fatalf(translate("fileOpenError", err))
+			log.Fatalf(translate("streamOpenError", err))
 		}
 		if _, err := stream.Write(modeData[:]); err != nil {
-			log.Fatalf(translate("fileOpenError", err))
+			log.Fatalf(translate("negotiateModeError", err))
 		}
 		if mode == 1 {
 			receiveFile(stream, blockSize)
@@ -233,7 +248,7 @@ func handleServerConnection(conn quic.Connection, blockSize int) {
 			sendFile(stream, blockSize)
 		}
 		stream.Close()
-		choice := askUserForMode(translate("continueTransmission"), translate("endSession"))
+		choice := askUserForMode(translate("continueTransfer"), translate("endSession"))
 		if choice != 1 {
 			return
 		}
@@ -244,11 +259,11 @@ func handleClientConnection(conn quic.Connection, blockSize int) {
 	for {
 		stream, err := conn.AcceptStream(context.Background())
 		if err != nil {
-			log.Fatalf(translate("fileOpenError", err))
+			log.Fatalf(translate("streamReceiveError", err))
 		}
 		var modeData [1]byte
 		if _, err := stream.Read(modeData[:]); err != nil {
-			log.Fatalf(translate("fileOpenError", err))
+			log.Fatalf(translate("negotiateModeError", err))
 		}
 		mode := modeData[0]
 		if mode == 1 {
@@ -257,9 +272,9 @@ func handleClientConnection(conn quic.Connection, blockSize int) {
 			receiveFile(stream, blockSize)
 		}
 		stream.Close()
-		choice := askUserForMode(translate("continueTransmission"), translate("endProgram"))
+		choice := askUserForMode(translate("continueTransfer"), translate("endProgram"))
 		if choice != 1 {
-			conn.CloseWithError(0, translate("endProgram"))
+			conn.CloseWithError(0, translate("normalClose"))
 			return
 		}
 	}
@@ -268,10 +283,10 @@ func handleClientConnection(conn quic.Connection, blockSize int) {
 func getServer() (string, string) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print(translate("enterFilePath"))
+		fmt.Print(translate("getServerAddress"))
 		serverInfo, err := reader.ReadString('\n')
 		if err != nil {
-			log.Print(translate("filePathError", err))
+			log.Print(translate("readInputError", err))
 			continue
 		}
 		serverInfo = strings.TrimSpace(serverInfo)
@@ -281,7 +296,7 @@ func getServer() (string, string) {
 			if domainRegex.MatchString(serverInfo) {
 				return serverInfo, serverInfo
 			} else {
-				log.Print(translate("invalidChoice"))
+				log.Print(translate("invalidIP"))
 			}
 			continue
 		}
@@ -289,7 +304,7 @@ func getServer() (string, string) {
 		if ip.To4() == nil && len(ip) == net.IPv6len {
 			serverInfo = "[" + serverInfo + "]"
 		}
-		skipChoice := askUserForMode(translate("generateCertificateError"), translate("generatePrivateKeyError"))
+		skipChoice := askUserForMode(translate("verifyIPCrt"), translate("skipVerify"))
 		if skipChoice != 1 {
 			return serverInfo, "skip"
 		}
@@ -344,7 +359,7 @@ func sendFile(stream quic.Stream, blockSize int) {
 		for {
 			n, err := file.Read(buffer)
 			if err != nil && err != io.EOF {
-				log.Fatalf(translate("sendFileContentError", err))
+				log.Fatalf(translate("fileStatError", err))
 			}
 			if n == 0 {
 				break
