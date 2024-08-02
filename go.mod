@@ -3,7 +3,7 @@ module github.com/Xarth-Mai/iFileGo
 go 1.22.5
 
 require (
-	github.com/Xarth-Mai/EasyI18n-Go v0.0.0-20240802222534-d476f55e029b
+	github.com/Xarth-Mai/EasyI18n-Go v0.0.0-20240802225320-01a318ebf5d9
 	github.com/cheggaaa/pb/v3 v3.1.5
 	github.com/quic-go/quic-go v0.45.2
 )
