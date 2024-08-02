@@ -1,0 +1,42 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "go",
+			"label": "go: build workspace",
+			"command": "build",
+			"args": [
+				"./..."
+			],
+			"problemMatcher": [
+				"$go"
+			],
+			"group": "build",
+			"detail": "cd d:\\iFileGo; go build ./..."
+		},
+		{
+			"label": "go: update and tidy",
+			"type": "shell",
+			"command": "sh",
+			"args": [
+				"-c",
+				"cd d:\\iFileGo && go get -u ./... && go mod tidy"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "go: run main",
+			"type": "shell",
+			"command": "sh",
+			"args": [
+				"-c",
+				"cd d:\\iFileGo && go run main.go"
+			],
+			"problemMatcher": [],
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
+		}
+	]
+}
