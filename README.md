@@ -23,27 +23,27 @@ go build
 
 ## 📝 Usage
 
-1. Place your TLS certificate files in the same directory as the executable, named `server.crt` and `server.key`. (Optional: If not provided, the program will generate random certificates.)
+1. Place your TLS certificate files in the same directory as the executable, named `server.crt` and `server.key`.
+- If not provided, the program will generate random certificates.
+- Only the server needs this step.
 
-2. Run the server:
+2. Run it:
 
    ```bash
    ./iFileGo
    ```
-
-3. Connect to the server using a QUIC client to transfer files.
 
 #
 
-1. 将TLS证书文件放在可执行文件所在目录，并命名为 `server.crt` 和 `server.key`。(可选: 如果不提供，程序会生成随机证书)
+1. 将TLS证书文件放在可执行文件所在目录，并命名为 `server.crt` 和 `server.key`。
+- 如果不提供，程序会生成随机证书
+- 只有服务端需要这步
 
-2. 运行服务器：
+2. 运行：
 
    ```bash
    ./iFileGo
    ```
-
-3. 启动客户端连接到服务器进行文件传输。
 
 ## 🌐 i18n
 
