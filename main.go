@@ -27,109 +27,10 @@ import (
 
 var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
-var translations = map[string]map[string]string{
-	"en": {
-		"version":                    "iFileGo V%s\n",
-		"selectMode":                 "Please select: 1 - %s, 0 - %s: ",
-		"invalidChoice":              "Invalid choice, please enter 1 or 0.",
-		"exitPrompt":                 "Press any key to exit...",
-		"serverListening":            "Server is listening on port %d...\n",
-		"listeningError":             "Error listening on port: %v\n",
-		"connectionError":            "Error establishing connection: %v\n",
-		"connectedTo":                "Connected to %s\n",
-		"receiveMode":                "Receive mode",
-		"sendMode":                   "Send mode",
-		"serverMode":                 "Server mode",
-		"clientMode":                 "Client mode",
-		"continueTransfer":           "Continue transfer",
-		"endSession":                 "End session",
-		"endProgram":                 "End program",
-		"enterFilePath":              "Please enter the file path to send: ",
-		"filePathError":              "Error reading file path: %v",
-		"fileOpenError":              "Error opening file: %v",
-		"negotiateModeError":         "Error negotiating transfer mode: %v",
-		"streamOpenError":            "Error opening stream: %v",
-		"streamReceiveError":         "Error receiving stream: %v",
-		"fileStatError":              "Error getting file information: %v",
-		"sendFileNameLengthError":    "Error sending file name length: %v",
-		"sendFileNameError":          "Error sending file name: %v",
-		"sendFileSizeError":          "Error sending file size: %v",
-		"sendFileContentError":       "Error sending file content: %v",
-		"fileSent":                   "File %s sent successfully\n",
-		"receiveFileNameLengthError": "Error receiving file name length: %v",
-		"receiveFileNameError":       "Error receiving file name: %v",
-		"receiveFileSizeError":       "Error receiving file size: %v",
-		"createFileError":            "Error creating file: %v",
-		"writeFileError":             "Error writing file content: %v",
-		"fileReceived":               "Received file: %s, size: %d bytes\n",
-		"readInputError":             "Error reading input: %v\n",
-		"getServerAddress":           "Please enter the server address: ",
-		"invalidIP":                  "Please enter a valid domain name or IP\n",
-		"verifyIPCrt":                "Verify IP certificate",
-		"skipVerify":                 "Skip verification",
-		"normalClose":                "Normal close",
-		"generatePrivateKeyError":    "Unable to generate private key: %v\n",
-		"generateSerialNumberError":  "Unable to generate serial number: %v\n",
-		"generateCertificateError":   "Unable to generate certificate: %v\n",
-		"createCertFileError":        "Unable to create certificate file: %v\n",
-		"createKeyFileError":         "Unable to create key file: %v\n",
-		"certSaved":                  "Randomly generated TLS certificate saved as random_server.crt and random_server.key",
-		"loadCertError":              "Unable to load TLS certificate: %v. Generating a new pair of certificates",
-	},
-	"zhs": {
-		"version":                    "iFileGo V%s\n",
-		"selectMode":                 "请选择:1 - %s, 0 - %s: ",
-		"invalidChoice":              "无效的选择, 请输入 1 或 0.",
-		"exitPrompt":                 "按任意键退出...",
-		"serverListening":            "服务端正在监听端口 %d...\n",
-		"listeningError":             "监听端口出错: %v\n",
-		"connectionError":            "建立连接时出错: %v\n",
-		"connectedTo":                "与 %s 建立连接\n",
-		"receiveMode":                "接收模式",
-		"sendMode":                   "发送模式",
-		"serverMode":                 "服务端模式",
-		"clientMode":                 "客户端模式",
-		"continueTransfer":           "继续传输",
-		"endSession":                 "结束会话",
-		"endProgram":                 "结束程序",
-		"enterFilePath":              "请输入要发送的文件路径: ",
-		"filePathError":              "读取文件路径错误: %v",
-		"fileOpenError":              "打开文件错误: %v",
-		"negotiateModeError":         "协商收发模式错误: %v",
-		"streamOpenError":            "打开流错误: %v",
-		"streamReceiveError":         "接受流错误: %v",
-		"fileStatError":              "获取文件信息错误: %v",
-		"sendFileNameLengthError":    "发送文件名长度错误: %v",
-		"sendFileNameError":          "发送文件名错误: %v",
-		"sendFileSizeError":          "发送文件大小错误: %v",
-		"sendFileContentError":       "发送文件内容错误: %v",
-		"fileSent":                   "文件 %s 发送完成\n",
-		"receiveFileNameLengthError": "接收文件名长度错误: %v",
-		"receiveFileNameError":       "接收文件名错误: %v",
-		"receiveFileSizeError":       "接收文件大小错误: %v",
-		"createFileError":            "创建文件错误: %v",
-		"writeFileError":             "写入文件内容错误: %v",
-		"fileReceived":               "接收到文件: %s, 大小: %d bytes\n",
-		"readInputError":             "读取输入错误: %v\n",
-		"getServerAddress":           "请输入服务端地址: ",
-		"invalidIP":                  "请输入合法的域名或IP\n",
-		"verifyIPCrt":                "验证IP证书",
-		"skipVerify":                 "跳过验证",
-		"normalClose":                "正常关闭",
-		"generatePrivateKeyError":    "无法生成私钥: %v\n",
-		"generateSerialNumberError":  "无法生成序列号: %v\n",
-		"generateCertificateError":   "无法生成证书: %v\n",
-		"createCertFileError":        "无法创建证书文件: %v\n",
-		"createKeyFileError":         "无法创建密钥文件: %v\n",
-		"certSaved":                  "随机生成的TLS证书已保存为 random_server.crt 和 random_server.key",
-		"loadCertError":              "无法加载TLS证书: %v随机生成一对新的证书",
-	},
-}
-
 var currentLanguage string
 
 func main() {
-	version := "14"
+	version := "15"
 	initLanguage()
 	fmt.Print(translate("version", version))
 	mode := askUserForMode(translate("serverMode"), translate("clientMode"))
@@ -162,10 +63,18 @@ func initLanguage() {
 		}
 	}
 
-	if strings.HasPrefix(languageCode, "zh") {
-		currentLanguage = "zhs"
-	} else {
-		currentLanguage = "en"
+	// 根据语言环境设置当前语言
+	switch {
+	case strings.HasPrefix(languageCode, "zh"):
+		if strings.HasSuffix(languageCode, "TW") {
+			currentLanguage = "zht" // 繁体中文
+		} else {
+			currentLanguage = "zhs" // 简体中文
+		}
+	case strings.HasPrefix(languageCode, "ja"):
+		currentLanguage = "jp" // 日语
+	default:
+		currentLanguage = "en" // 默认语言
 	}
 }
 
