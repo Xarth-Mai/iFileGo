@@ -12,29 +12,45 @@
 				"$go"
 			],
 			"group": "build",
-			"detail": "cd d:\\iFileGo; go build ./..."
+			"detail": "go build ./..."
 		},
 		{
 			"label": "go: update and tidy",
 			"type": "shell",
-			"command": "sh",
+			"command": "go",
 			"args": [
-				"-c",
-				"cd d:\\iFileGo && go get -u ./... && go mod tidy"
+				"mod",
+				"tidy"
 			],
-			"problemMatcher": []
+			"problemMatcher": [],
+			"detail": "go mod update and tidy",
+			"dependsOn": [
+				"go: update"
+			]
+		},
+		{
+			"label": "go: update",
+			"type": "shell",
+			"command": "go",
+			"args": [
+				"get",
+				"-u",
+				"./..."
+			],
+			"problemMatcher": [],
+			"detail": "go mod update"
 		},
 		{
 			"label": "go: run main",
 			"type": "shell",
-			"command": "sh",
+			"command": "go",
 			"args": [
-				"-c",
-				"cd d:\\iFileGo && go run main.go"
+				"run",
+				"main.go"
 			],
 			"problemMatcher": [],
 			"group": {
-				"kind": "test",
+				"kind": "build",
 				"isDefault": true
 			}
 		}
