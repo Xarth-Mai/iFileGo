@@ -1,6 +1,6 @@
 package main
 
-var translations = map[string]map[string]string{
+var EasyI18nTranslations = map[string]map[string]string{
 	"en": {
 		"version":                    "iFileGo V%s\n",
 		"selectMode":                 "Please select: 1 - %s, 0 - %s: ",

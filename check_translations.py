@@ -3,12 +3,11 @@ import re
 def extract_translate_keys(filepath):
     with open(filepath, 'r', encoding='utf-8') as file:
         content = file.read()
-    return re.findall(r'translate\("([^"]+)"', content)
+    return re.findall(r'i18n\.Translate\("([^"]+)"', content)
 
 def extract_translations(filepath):
     with open(filepath, 'r', encoding='utf-8') as file:
         content = file.read()
-    # 找到所有的语言键，如 "en": { ... }
     language_sections = re.findall(r'"(\w+)":\s*{([^}]*)}', content)
     translations = {}
     for lang, keys_str in language_sections:

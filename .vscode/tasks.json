@@ -46,7 +46,7 @@
 			"command": "go",
 			"args": [
 				"run",
-				"main.go"
+				"./"
 			],
 			"problemMatcher": [],
 			"group": {

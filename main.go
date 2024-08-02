@@ -21,19 +21,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Xarth-Mai/EasyI18n-Go/i18n"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/quic-go/quic-go"
 )
 
 var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
-var currentLanguage string
-
 func main() {
 	version := "15"
-	initLanguage()
-	fmt.Print(translate("version", version))
-	mode := askUserForMode(translate("serverMode"), translate("clientMode"))
+	i18n.SetCustomTranslations(EasyI18nTranslations)
+	i18n.InitLanguage()
+	fmt.Print(i18n.Translate("version", version))
+	mode := askUserForMode(i18n.Translate("serverMode"), i18n.Translate("clientMode"))
 	port := 35342
 	blockSize := 64 * 1280
 
@@ -44,64 +44,24 @@ func main() {
 		runClient(serverIP, port, blockSize, serverName)
 	}
 
-	fmt.Println(translate("exitPrompt"))
+	fmt.Println(i18n.Translate("exitPrompt"))
 	fmt.Scanln()
 	os.Exit(0)
-}
-
-func initLanguage() {
-	envVars := []string{"LANG", "LC_ALL", "LC_MESSAGES"}
-	var languageCode string
-
-	for _, envVar := range envVars {
-		if lang, exists := os.LookupEnv(envVar); exists {
-			parts := strings.Split(lang, "_")
-			if len(parts) > 0 {
-				languageCode = parts[0]
-				break
-			}
-		}
-	}
-
-	// 根据语言环境设置当前语言
-	switch {
-	case strings.HasPrefix(languageCode, "zh"):
-		if strings.HasSuffix(languageCode, "TW") {
-			currentLanguage = "zht" // 繁体中文
-		} else {
-			currentLanguage = "zhs" // 简体中文
-		}
-	case strings.HasPrefix(languageCode, "ja"):
-		currentLanguage = "jp" // 日语
-	default:
-		currentLanguage = "en" // 默认语言
-	}
-}
-
-func translate(key string, args ...interface{}) string {
-	if val, ok := translations[currentLanguage][key]; ok {
-		return fmt.Sprintf(val, args...)
-	}
-	if val, ok := translations["en"][key]; ok {
-		return fmt.Sprintf(val, args...)
-	}
-	missingkey := "$" + key
-	return missingkey
 }
 
 func askUserForMode(option1, option2 string) int {
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print(translate("selectMode", option1, option2))
+		fmt.Print(i18n.Translate("selectMode", option1, option2))
 		modeStr, err := reader.ReadString('\n')
 		if err != nil {
-			log.Print(translate("filePathError", err))
+			log.Print(i18n.Translate("filePathError", err))
 			continue
 		}
 		modeStr = strings.TrimSpace(modeStr)
 		mode, err := strconv.Atoi(modeStr)
 		if err != nil || (mode != 0 && mode != 1) {
-			log.Println(translate("invalidChoice"))
+			log.Println(i18n.Translate("invalidChoice"))
 			continue
 		}
 		return mode
@@ -111,20 +71,20 @@ func askUserForMode(option1, option2 string) int {
 func runServer(port, blockSize int) {
 	listener, err := quic.ListenAddr(fmt.Sprintf(":%d", port), generateTLSConfig(1, "null"), nil)
 	if err != nil {
-		log.Fatalf(translate("listeningError", err))
+		log.Fatalf(i18n.Translate("listeningError", err))
 	}
-	log.Print(translate("serverListening", port))
+	log.Print(i18n.Translate("serverListening", port))
 	for {
 		conn, err := listener.Accept(context.Background())
 		if err != nil {
-			log.Print(translate("connectionError", err))
+			log.Print(i18n.Translate("connectionError", err))
 			continue
 		}
-		log.Print(translate("connectedTo", conn.RemoteAddr().String()))
+		log.Print(i18n.Translate("connectedTo", conn.RemoteAddr().String()))
 		handleServerConnection(conn, blockSize)
-		choice := askUserForMode(translate("continueTransfer"), translate("endProgram"))
+		choice := askUserForMode(i18n.Translate("continueTransfer"), i18n.Translate("endProgram"))
 		if choice != 1 {
-			conn.CloseWithError(0, translate("normalClose"))
+			conn.CloseWithError(0, i18n.Translate("normalClose"))
 			return
 		}
 	}
@@ -133,23 +93,23 @@ func runServer(port, blockSize int) {
 func runClient(serverIP string, port, blockSize int, serverName string) {
 	conn, err := quic.DialAddr(context.Background(), fmt.Sprintf("%s:%d", serverIP, port), generateTLSConfig(0, serverName), nil)
 	if err != nil {
-		log.Fatalf(translate("connectionError", err))
+		log.Fatalf(i18n.Translate("connectionError", err))
 	}
-	log.Print(translate("connectedTo", serverIP))
+	log.Print(i18n.Translate("connectedTo", serverIP))
 	handleClientConnection(conn, blockSize)
 }
 
 func handleServerConnection(conn quic.Connection, blockSize int) {
 	for {
-		mode := askUserForMode(translate("receiveMode"), translate("sendMode"))
+		mode := askUserForMode(i18n.Translate("receiveMode"), i18n.Translate("sendMode"))
 		var modeData [1]byte
 		modeData[0] = byte(mode)
 		stream, err := conn.OpenStream()
 		if err != nil {
-			log.Fatalf(translate("streamOpenError", err))
+			log.Fatalf(i18n.Translate("streamOpenError", err))
 		}
 		if _, err := stream.Write(modeData[:]); err != nil {
-			log.Fatalf(translate("negotiateModeError", err))
+			log.Fatalf(i18n.Translate("negotiateModeError", err))
 		}
 		if mode == 1 {
 			receiveFile(stream, blockSize)
@@ -157,7 +117,7 @@ func handleServerConnection(conn quic.Connection, blockSize int) {
 			sendFile(stream, blockSize)
 		}
 		stream.Close()
-		choice := askUserForMode(translate("continueTransfer"), translate("endSession"))
+		choice := askUserForMode(i18n.Translate("continueTransfer"), i18n.Translate("endSession"))
 		if choice != 1 {
 			return
 		}
@@ -168,11 +128,11 @@ func handleClientConnection(conn quic.Connection, blockSize int) {
 	for {
 		stream, err := conn.AcceptStream(context.Background())
 		if err != nil {
-			log.Fatalf(translate("streamReceiveError", err))
+			log.Fatalf(i18n.Translate("streamReceiveError", err))
 		}
 		var modeData [1]byte
 		if _, err := stream.Read(modeData[:]); err != nil {
-			log.Fatalf(translate("negotiateModeError", err))
+			log.Fatalf(i18n.Translate("negotiateModeError", err))
 		}
 		mode := modeData[0]
 		if mode == 1 {
@@ -181,9 +141,9 @@ func handleClientConnection(conn quic.Connection, blockSize int) {
 			receiveFile(stream, blockSize)
 		}
 		stream.Close()
-		choice := askUserForMode(translate("continueTransfer"), translate("endProgram"))
+		choice := askUserForMode(i18n.Translate("continueTransfer"), i18n.Translate("endProgram"))
 		if choice != 1 {
-			conn.CloseWithError(0, translate("normalClose"))
+			conn.CloseWithError(0, i18n.Translate("normalClose"))
 			return
 		}
 	}
@@ -192,10 +152,10 @@ func handleClientConnection(conn quic.Connection, blockSize int) {
 func getServer() (string, string) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print(translate("getServerAddress"))
+		fmt.Print(i18n.Translate("getServerAddress"))
 		serverInfo, err := reader.ReadString('\n')
 		if err != nil {
-			log.Print(translate("readInputError", err))
+			log.Print(i18n.Translate("readInputError", err))
 			continue
 		}
 		serverInfo = strings.TrimSpace(serverInfo)
@@ -205,7 +165,7 @@ func getServer() (string, string) {
 			if domainRegex.MatchString(serverInfo) {
 				return serverInfo, serverInfo
 			} else {
-				log.Print(translate("invalidIP"))
+				log.Print(i18n.Translate("invalidIP"))
 			}
 			continue
 		}
@@ -213,7 +173,7 @@ func getServer() (string, string) {
 		if ip.To4() == nil && len(ip) == net.IPv6len {
 			serverInfo = "[" + serverInfo + "]"
 		}
-		skipChoice := askUserForMode(translate("verifyIPCrt"), translate("skipVerify"))
+		skipChoice := askUserForMode(i18n.Translate("verifyIPCrt"), i18n.Translate("skipVerify"))
 		if skipChoice != 1 {
 			return serverInfo, "skip"
 		}
@@ -224,22 +184,22 @@ func getServer() (string, string) {
 func sendFile(stream quic.Stream, blockSize int) {
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print(translate("enterFilePath"))
+		fmt.Print(i18n.Translate("enterFilePath"))
 		filePath, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatalf(translate("filePathError", err))
+			log.Fatalf(i18n.Translate("filePathError", err))
 			continue
 		}
 		filePath = strings.Trim(strings.TrimSpace(filePath), "\"")
 		file, err := os.Open(filePath)
 		if err != nil {
-			log.Fatalf(translate("fileOpenError", err))
+			log.Fatalf(i18n.Translate("fileOpenError", err))
 			continue
 		}
 		defer file.Close()
 		fileInfo, err := file.Stat()
 		if err != nil {
-			log.Fatalf(translate("fileStatError", err))
+			log.Fatalf(i18n.Translate("fileStatError", err))
 			continue
 		}
 		fileName := fileInfo.Name()
@@ -247,16 +207,16 @@ func sendFile(stream quic.Stream, blockSize int) {
 
 		// 发送文件名长度和文件名
 		if err := binary.Write(stream, binary.BigEndian, uint8(len(fileName))); err != nil {
-			log.Fatalf(translate("sendFileNameLengthError", err))
+			log.Fatalf(i18n.Translate("sendFileNameLengthError", err))
 			return
 		}
 		if err := binary.Write(stream, binary.BigEndian, []byte(fileName)); err != nil {
-			log.Fatalf(translate("sendFileNameError", err))
+			log.Fatalf(i18n.Translate("sendFileNameError", err))
 			return
 		}
 		// 发送文件大小
 		if err := binary.Write(stream, binary.BigEndian, fileSize); err != nil {
-			log.Fatalf(translate("sendFileSizeError", err))
+			log.Fatalf(i18n.Translate("sendFileSizeError", err))
 			return
 		}
 
@@ -268,18 +228,18 @@ func sendFile(stream quic.Stream, blockSize int) {
 		for {
 			n, err := file.Read(buffer)
 			if err != nil && err != io.EOF {
-				log.Fatalf(translate("fileStatError", err))
+				log.Fatalf(i18n.Translate("fileStatError", err))
 			}
 			if n == 0 {
 				break
 			}
 			if _, err := stream.Write(buffer[:n]); err != nil {
-				log.Fatalf(translate("sendFileContentError", err))
+				log.Fatalf(i18n.Translate("sendFileContentError", err))
 			}
 			bar.Add(blockSize)
 		}
 		bar.Finish()
-		fmt.Print(translate("fileSent", fileName))
+		fmt.Print(i18n.Translate("fileSent", fileName))
 		return
 	}
 }
@@ -287,16 +247,16 @@ func sendFile(stream quic.Stream, blockSize int) {
 func receiveFile(stream quic.Stream, blockSize int) {
 	var fileNameLength uint8
 	if err := binary.Read(stream, binary.BigEndian, &fileNameLength); err != nil {
-		log.Fatalf(translate("receiveFileNameLengthError", err))
+		log.Fatalf(i18n.Translate("receiveFileNameLengthError", err))
 	}
 	fileNameBytes := make([]byte, fileNameLength)
 	if _, err := stream.Read(fileNameBytes); err != nil {
-		log.Fatalf(translate("receiveFileNameError", err))
+		log.Fatalf(i18n.Translate("receiveFileNameError", err))
 	}
 	fileName := string(fileNameBytes)
 	var fileSize int64
 	if err := binary.Read(stream, binary.BigEndian, &fileSize); err != nil {
-		log.Fatalf(translate("receiveFileSizeError", err))
+		log.Fatalf(i18n.Translate("receiveFileSizeError", err))
 	}
 
 	// 创建进度条
@@ -305,7 +265,7 @@ func receiveFile(stream quic.Stream, blockSize int) {
 	// 创建文件
 	file, err := os.Create(fileName)
 	if err != nil {
-		log.Fatalf(translate("createFileError", err))
+		log.Fatalf(i18n.Translate("createFileError", err))
 	}
 	defer file.Close()
 
@@ -315,13 +275,13 @@ func receiveFile(stream quic.Stream, blockSize int) {
 	for {
 		n, err := stream.Read(buffer)
 		if err != nil && err != io.EOF {
-			log.Fatalf(translate("receiveFileContentError", err))
+			log.Fatalf(i18n.Translate("receiveFileContentError", err))
 		}
 		if n == 0 {
 			break
 		}
 		if _, err := file.Write(buffer[:n]); err != nil {
-			log.Fatalf(translate("writeFileError", err))
+			log.Fatalf(i18n.Translate("writeFileError", err))
 		}
 		bar.Add(n)
 		receivedBytes += int64(n)
@@ -330,13 +290,13 @@ func receiveFile(stream quic.Stream, blockSize int) {
 		}
 	}
 	bar.Finish()
-	fmt.Print(translate("fileReceived", fileName, fileSize))
+	fmt.Print(i18n.Translate("fileReceived", fileName, fileSize))
 }
 
 func generateRandomTLSCertificate() tls.Certificate {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		log.Fatalf(translate("generatePrivateKeyError", err))
+		log.Fatalf(i18n.Translate("generatePrivateKeyError", err))
 	}
 
 	notBefore := time.Now()
@@ -344,7 +304,7 @@ func generateRandomTLSCertificate() tls.Certificate {
 
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		log.Fatalf(translate("generateSerialNumberError", err))
+		log.Fatalf(i18n.Translate("generateSerialNumberError", err))
 	}
 
 	template := x509.Certificate{
@@ -361,24 +321,24 @@ func generateRandomTLSCertificate() tls.Certificate {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
-		log.Fatalf(translate("generateCertificateError", err))
+		log.Fatalf(i18n.Translate("generateCertificateError", err))
 	}
 
 	certOut, err := os.Create("random_server.crt")
 	if err != nil {
-		log.Fatalf(translate("createCertFileError", err))
+		log.Fatalf(i18n.Translate("createCertFileError", err))
 	}
 	defer certOut.Close()
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 
 	keyOut, err := os.Create("random_server.key")
 	if err != nil {
-		log.Fatalf(translate("createKeyFileError", err))
+		log.Fatalf(i18n.Translate("createKeyFileError", err))
 	}
 	defer keyOut.Close()
 	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
 
-	log.Println(translate("certSaved"))
+	log.Println(i18n.Translate("certSaved"))
 
 	return tls.Certificate{
 		Certificate: [][]byte{derBytes},
@@ -389,7 +349,7 @@ func generateRandomTLSCertificate() tls.Certificate {
 func loadTLSCertificate(certFile, keyFile string) tls.Certificate {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		log.Print(translate("loadCertError", err))
+		log.Print(i18n.Translate("loadCertError", err))
 		return generateRandomTLSCertificate()
 	}
 	return cert
