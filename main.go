@@ -29,7 +29,7 @@ import (
 var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
 
 func main() {
-	version := "15"
+	version := "16"
 	i18n.SetCustomTranslations(EasyI18nTranslations)
 	i18n.InitLanguage()
 	fmt.Print(i18n.Translate("version", version))
