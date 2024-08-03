@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Xarth-Mai/EasyI18n-Go/i18n"
+	"github.com/Xarth-Mai/EasyI18n-Go"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/quic-go/quic-go"
 )
