@@ -1,11 +1,11 @@
 module github.com/Xarth-Mai/iFileGo
 
-go 1.22.5
+go 1.22.6
 
 require (
-	github.com/Xarth-Mai/EasyI18n-Go v1.1.1
+	github.com/Xarth-Mai/EasyI18n-Go v1.1.2
 	github.com/cheggaaa/pb/v3 v3.1.5
-	github.com/quic-go/quic-go v0.45.2
+	github.com/quic-go/quic-go v0.46.0
 )
 
 require (
