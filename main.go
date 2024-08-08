@@ -26,7 +26,7 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-var domainRegex = regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`)
+var domainRegex = regexp.MustCompile(`^([0-9a-zA-Z-]{1,}\.)+([a-zA-Z]{2,})$`)
 
 func main() {
 	version := "16"
