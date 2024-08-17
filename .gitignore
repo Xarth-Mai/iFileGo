@@ -2,6 +2,7 @@
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Binaries for programs and plugins
+iFileGo
 *.exe
 *.exe~
 *.dll
@@ -19,6 +20,7 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
+.Ds_Store
 # vendor/
 
 # Go workspace file
