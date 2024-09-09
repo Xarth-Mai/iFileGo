@@ -55,7 +55,3 @@ go build
 ## 🛠 License
 
 This project is licensed under the [MPL License](https://github.com/Xarth-Mai/iFileGo#MPL-2.0-1-ov-file)
-
-## 🌟 Stargazers
-
-[![Stargazers over time](https://starchart.cc/Xarth-Mai/iFileGo.svg?variant=adaptive)](https://starchart.cc/Xarth-Mai/iFileGo)
